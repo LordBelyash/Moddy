@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  password        String
+  username        String           @unique
+  avatarUrl       String?
+  bio             String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  mods            Mod[]
+  comments        Comment[]
+  downloads       Download[]
+
+  builds          Build[]          // 👈 Обратная связь
+  buildDownloads  BuildDownload[]  // 👈 Обратная связь
+}
+
+model Game {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  imageUrl  String?                      // 👈 Добавлено
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mods      Mod[]
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mods      Mod[]
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  modTags   ModTag[]
+}
+
+model Mod {
+  id           String         @id @default(uuid())
+  title        String
+  slug         String         @unique
+  description  String
+  version      String
+  fileUrl      String
+  imageUrl     String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  authorId     String
+  gameId       String
+  categoryId   String
+
+  author       User           @relation(fields: [authorId], references: [id])
+  game         Game           @relation(fields: [gameId], references: [id])
+  category     Category       @relation(fields: [categoryId], references: [id])
+
+  tags         ModTag[]
+  comments     Comment[]
+  downloads    Download[]
+  versions     ModVersion[]
+  leakedInfo   LeakedSource?
+
+  buildMods    BuildMod[]     // 👈 Обратная связь
+}
+
+model ModVersion {
+  id          String   @id @default(uuid())
+  version     String
+  changelog   String?
+  fileUrl     String
+  fileSize    Int?
+  createdAt   DateTime @default(now())
+
+  modId       String
+  mod         Mod      @relation(fields: [modId], references: [id])
+}
+
+model LeakedSource {
+  id           String   @id @default(uuid())
+  platform     String
+  originalUrl  String
+  downloadUrl  String
+  note         String?
+  leakedAt     DateTime @default(now())
+
+  modId        String   @unique
+  mod          Mod      @relation(fields: [modId], references: [id])
+}
+
+model ModTag {
+  modId String
+  tagId String
+
+  mod   Mod @relation(fields: [modId], references: [id])
+  tag   Tag @relation(fields: [tagId], references: [id])
+
+  @@id([modId, tagId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  modId     String
+
+  user      User     @relation(fields: [userId], references: [id])
+  mod       Mod      @relation(fields: [modId], references: [id])
+}
+
+model Download {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId    String
+  modId     String
+
+  user      User     @relation(fields: [userId], references: [id])
+  mod       Mod      @relation(fields: [modId], references: [id])
+}
+
+model Build {
+  id          String    @id @default(uuid())
+  title       String
+  slug        String    @unique
+  description String
+  imageUrl    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+
+  mods        BuildMod[]
+  downloads   BuildDownload[]
+}
+
+model BuildMod {
+  buildId String
+  modId   String
+
+  build   Build @relation(fields: [buildId], references: [id])
+  mod     Mod   @relation(fields: [modId], references: [id])
+
+  @@id([buildId, modId])
+}
+
+model BuildDownload {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId    String
+  buildId   String
+
+  user      User     @relation(fields: [userId], references: [id])
+  build     Build    @relation(fields: [buildId], references: [id])
+}
